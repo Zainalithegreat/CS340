@@ -1,6 +1,15 @@
+// ########################################
+// Home.jsx
+// This file was written and code by me
+// I did use AI to find syntax errors since I am new to React and Node
+// This file is my Original work with AI used for finding syntax errors and help me learn React and Node
+// ########################################
+
+// react imports
 import React, { useEffect, useState } from 'react';
 
 function Home() {
+    // This is just the basic Home page where it displays some basic things.
     return (
         <>
         <div>

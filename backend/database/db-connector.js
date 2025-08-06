@@ -1,3 +1,10 @@
+// ########################################
+// db-connector.js
+// This file was written and code by me
+// I did use AI to find syntax errors since I am new to React and Node
+// This file is my Original work with AI used for finding syntax errors and help me learn React and Node
+// ########################################
+// ########## SETUP
 // Get an instance of mysql we can use in the app
 let mysql = require('mysql2')
 const config = require("../../connection.json")

@@ -1,3 +1,11 @@
+// ########################################
+// App.jsx
+// This file was written and code by me
+// I did use AI to find syntax errors since I am new to React and Node
+// This file is my Original work with AI used for finding syntax errors and help me help React and Node
+// ########################################
+
+// React related imports
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 
@@ -19,7 +27,7 @@ const backendPort = 55115;  // Use the port you assigned to the backend server, 
 const backendURL = `http://classwork.engr.oregonstate.edu:${backendPort}`;
 
 function App() {
-
+    // Used for Navigation between pages
     return (
         <>
             <Navigation />
