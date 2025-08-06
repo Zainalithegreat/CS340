@@ -128,6 +128,7 @@ function Checkouts() {
     // Displays everything that is returned by fetch genres
     // This will also display a form to insert a new row
     // This will also display a button that will delete a row
+    // Also has a Update button which takes the user to the Updates page.
     return (
     <div className="home-container">
         <h2 className="section-title">Checkouts</h2>
