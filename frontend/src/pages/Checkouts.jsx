@@ -14,10 +14,17 @@ function Checkouts() {
     // All the variables I will use in Checkouts file
     const [checkouts, setCheckouts] = useState([]);
     const [error, setError] = useState(null);
-    const [membersID, setMemberID] = useState([]);
     const [memberNames, setMemberNames] = useState([]);
-    const [booksID, setBookID] = useState([]);
     const [booksTitle, setBooksTitle] = useState([]);
+
+    const [selectedMemberName, setSelectedMemberName] = useState('');
+    const [selectedBookTitle, setSelectedBookTitle] = useState('');
+    const [selectedMemberID, setSelectedMemberID] = useState(0);
+    const [selectedBookID, setSelectedBookID] = useState(0);
+    const [checkoutDateDB, setCheckoutDate] = useState('');
+    const [dueDateDB, setDueDate] = useState('');
+    const [returnDateDB, setReturnDate] = useState('');
+
 
     useEffect(() => {
          // This function fetches checkouts so it can be displayed.
@@ -33,10 +40,8 @@ function Checkouts() {
                     setCheckouts(data); // set state to display it
 
                 const ids = [...new Set(data.map(member => Number(member.idMember)))];
-                setMemberID(ids);
 
                 const bookIds = [...new Set(data.map(member => Number(member.idBook)))];
-                setBookID(bookIds);
                 // else it will throw an error
                 } else {
                     const err = await response.json();
@@ -52,78 +57,160 @@ function Checkouts() {
         fetchCheckouts();
     }, []);
 
-    useEffect(() => {
-        if (membersID.length === 0) return;
-        // This function fetches members ids, this is used for dynamic drop down.
-        async function fetchMemberIDs(){
-            try {
+   useEffect(() => {
+    // Fetches member names
+    async function fetchMemberNames() {
+        try {
             const response = await fetch('http://classwork.engr.oregonstate.edu:55111/fetch_memberIds', {
-                        method: 'POST',
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(membersID)
-                    });
-                // If the response is ok it will get stored in data
-                if (response.ok) {
-                    const data = await response.json();
-                    setMemberNames(data);
-                // else it will throw an error
-                } else {
-                    const err = await response.json();
-                    setError(err.message);
-                }
-                // This is try catch, this will catch the error
-                } catch (err) {
-                        console.error("Something went wrong:", err);
-                        setError("Fetch failed");
-                }
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+            });
+            // Everything worked out
+            if (response.ok) {
+                const data = await response.json();
+                setMemberNames(data);
+            // Something broke
+            } else {
+                const err = await response.json();
+                setError(err.message);
+            }
+        // This is try catch, this will catch the error
+        } catch (err) {
+            console.error("Something went wrong:", err);
+            setError("Fetch failed");
         }
-     fetchMemberIDs();
-    }, [membersID]);
+    }
+
+        fetchMemberNames();
+    }, []);
 
     useEffect(() => {
-        if (booksID.length === 0) return;
-         // This function fetches books ids, this is used for dynamic drop down.
-        async function fetchBookIDs(){
+        // Fetches member names
+        async function fetchBookTitles() {
             try {
-            const response = await fetch('http://classwork.engr.oregonstate.edu:55111/fetch_bookIds', {
-                        method: 'POST',
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(booksID)
-                    });
-                // If the response is ok it will get stored in data
+                const response = await fetch('http://classwork.engr.oregonstate.edu:55111/fetch_bookIds', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                });
+                // Everything worked
                 if (response.ok) {
                     const data = await response.json();
                     setBooksTitle(data);
-
-                // else it will throw an error
+                // Something went wrong
                 } else {
                     const err = await response.json();
                     setError(err.message);
                 }
-                // This is try catch, this will catch the error
-                } catch (err) {
-                        console.error("Something went wrong:", err);
-                        setError("Fetch failed");
-                }
+            // This is try catch, this will catch the error
+            } catch (err) {
+                console.error("Something went wrong:", err);
+                setError("Fetch failed");
+            }
         }
-     fetchBookIDs();
-    }, [booksID]);
+
+        fetchBookTitles();
+    }, []);
+
 
     // This will insert values into the database
     async function insert(e) {
-        e.preventDefault();
+        try {
+            const response = await fetch('http://classwork.engr.oregonstate.edu:55111/insert_row', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({selectedMemberID, selectedBookID, checkoutDateDB, dueDateDB, returnDateDB})
+            });
+            if (response.ok) {
+                const data = await response.json();
+            } else {
+                const err = await response.json();
+                setError(err.message);
+            }
+        } catch (err) {
+            console.error("Something went wrong:", err);
+            setError("Delete failed");
+        }
     }
-    // used for react navigation
-    const navigate = useNavigate();
 
-    // When the user click the update button we go to the Update page
-    const handleUpdateClick = () => {
-        navigate('/Update')
-    };
-
-    console.log(members)
     console.log(booksTitle)
     console.log(memberNames)
+
+    // This function will delete a row from the checkouts table
+    async function deleteRow(Checkout_id){
+        console.log("GOt here")
+        try {
+            const response = await fetch('http://classwork.engr.oregonstate.edu:55111/delete_row', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({id: Checkout_id})
+            });
+            // Everything worked
+            if (response.ok) {
+                const data = await response.json();
+                window.location.reload();
+            // Ran into an error
+            } else {
+                const err = await response.json();
+                setError(err.message);
+            }
+        // This is try catch, this will catch the error
+        } catch (err) {
+            console.error("Something went wrong:", err);
+            setError("Delete failed");
+        }
+    }
+
+
+    // Handles when the member has change on the UI
+    async function handleMemberChange(e) {
+        const name = e.target.value;
+        setSelectedMemberName(name);
+        console.log("Name: ", name)
+        const response = await fetch('http://classwork.engr.oregonstate.edu:55111/get_member_id', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log("memberId", data)
+            setSelectedMemberID(data[0].idMember)
+        } else {
+            const err = await response.json();
+            setError(err.message);
+        }
+    }
+
+     // Handles when the book has change on the UI
+    async function handleBookChange(e) {
+        const title = e.target.value;
+        setSelectedBookTitle(title);
+        console.log("title: ", title)
+
+        const response = await fetch('http://classwork.engr.oregonstate.edu:55111/get_book_id', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log("bookId", data)
+            setSelectedBookID(data[0].idBook)
+        } else {
+            const err = await response.json();
+            setError(err.message);
+        }
+    }
+
+    // This is navigate for react
+    const navigate = useNavigate();
+
+    // Navigates to the update page
+    async function handleUpdateClick(idCheckout) {
+        console.log("ID: ", idCheckout)
+        navigate('/Update');
+        localStorage.setItem("checkout", idCheckout);
+    }
 
     // Displays everything that is returned by fetch genres
     // This will also display a form to insert a new row
@@ -134,48 +221,67 @@ function Checkouts() {
         <h2 className="section-title">Checkouts</h2>
         {error && <p className="error-text">Error: {error}</p>}
 
-        {members.length > 0 ? (
+        {checkouts.length > 0 ? (
             <ul className="member-list">
-                {members.map((member, index) => (
+                {checkouts.map((checkout, index) => (
                     <li key={index} className="member-item">
-                        <h2>Checkout ID: {member.Checkout_ID}, Member ID: {member.idMember}, Book ID: {member.idBook}, Member Name: {member.name}, Book Title: {member.title}, checkoutDate: {member.checkoutDate}, dueDate: {member.dueDate}, returnDate: {member.returnDate}</h2>
+                        <h2>Checkout ID: {checkout.Checkout_ID}, Member ID: {checkout.idMember}, Book ID: {checkout.idBook}, Member Name: {checkout.name}, Book Title: {checkout.title}, checkoutDate: {checkout.checkoutDate}, dueDate: {checkout.dueDate}, returnDate: {checkout.returnDate}</h2>
                         <br />
                         <div>
-                            <button onClick={handleUpdateClick}>Update</button>
-                            <button>Delete</button>
+                            <button onClick={() => handleUpdateClick(checkout.Checkout_ID)}>Update</button>
+                            <button onClick={() => deleteRow(checkout.Checkout_ID)}>Delete</button>
                         </div>
                     </li>
                 ))}
             </ul>
         ) : (
-            <p className="loading-text">Loading members...</p>
+            <p className="loading-text">Either Loading checkouts or no data found...</p>
         )}
         <form onSubmit={insert}>
             <h1>Insert</h1>
-            <label>Member's name(MemberID)</label><select>
+            <label>Member's name(MemberID)</label>
+            <select value={selectedMemberName} onChange={handleMemberChange}>
                 <option></option>
-                {memberNames.map((id) => (
-                    <option>{id}</option>
+                {memberNames.map((m, index) => (
+                    <option key={index} value={m.name}>{m.name}</option>
+                ))}
+
+            </select>
+
+            <br/><label>Book's Title(BookID)</label>
+            <select value={selectedBookTitle} onChange={handleBookChange}>
+                <option></option>
+                {booksTitle.map((m, index) => (
+                    <option key={index} value={m.title}>{m.title}</option>
                 ))}
             </select>
 
-            <br /><label>Book's Title(BookID)</label><select>
-                <option></option>
-                {booksTitle.map((id) => (
-                    <option>{id}</option>
-                ))}
-            </select>
+            <br /> Checkout Date: <input
+                type="date"
+                id="checkout"
+                name="checkout"
+                value={checkoutDateDB}
+                onChange={(e) => setCheckoutDate(e.target.value)}
+            />
 
-            <br /><label for="checkout">checkout Date:</label>
-            <input type="date" id="checkout" name="checkout"></input>
+            <br /> Due Date: <input
+                type="date"
+                id="dueDate"
+                name="dueDate"
+                value={dueDateDB}
+                onChange={(e) => setDueDate(e.target.value)}
+            />
 
-            <br /><label for="dueDate">Due Date:</label>
-            <input type="date" id="dueDate" name="dueDate"></input>
+            <br /> Return Date: <input
+                type="date"
+                id="returnDate"
+                name="returnDate"
+                value={returnDateDB}
+                onChange={(e) => setReturnDate(e.target.value)}
+            />
 
-            <br /><label for="returnDate">Return Date:</label>
-            <input type="date" id="returnDate" name="returnDate"></input>
-
-            <br /><button type="submit" name="type" value="submit" className="main-button">Insert</button>
+            <br/>
+            <button type="submit" name="type" value="submit" className="main-button">Insert</button>
         </form>
     </div>
     );

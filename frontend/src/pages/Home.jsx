@@ -9,10 +9,25 @@
 import React, { useEffect, useState } from 'react';
 
 function Home() {
+
+    async function resetDB(){
+        const response = await fetch('http://classwork.engr.oregonstate.edu:55111/reset_db', {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (response.ok){
+            console.log("Reset Successful!")
+        }else{
+            console.log("Unsuccessful")
+        }
+    }
+
     // This is just the basic Home page where it displays some basic things.
     return (
         <>
         <div>
+            <button className= "bigger_button" onClick={resetDB}>Reset Button</button>
             <h1>Home Page</h1>
             <h2>All the CUD will be implemented in Checkouts page</h2>
             <h2>Project Description: </h2>

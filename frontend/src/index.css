@@ -90,3 +90,10 @@
     text-align: center;
     margin: 0 auto;
 }
+
+.bigger_button{
+    cursor: pointer;
+    font-size: 2rem;
+    padding: 1.5rem 3rem;
+    border-radius: 1rem;
+}

@@ -48,7 +48,7 @@ function BooksHasGenres() {
 
         {error && <p className="error-text">Error: {error}</p>}
 
-        {members.length > 0 ? (
+        {booksNGenres.length > 0 ? (
             <ul className="member-list">
                 {booksNGenres.map((booksNGenre, index) => (
                     <li key={index} className="member-item">

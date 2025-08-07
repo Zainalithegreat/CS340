@@ -119,50 +119,113 @@ app.post('/fetch_authors', async (req, res) => {
     }
 });
 
-// This route fetches a specific member name given a memberid
+// This route fetches member names
 app.post('/fetch_memberIds', async(req, res) =>{
-    const memberIDs = req.body;
-    var names = []
-    try{
-        // Given an array of ids we will fetch names for all the ids in the array
-        for(let i=0; i < memberIDs.length; i++){
-            const [rows] = await pool.query('SELECT name from Members where idMember = ?', [memberIDs[i]]);
-            console.log("Member", rows)
-            if (rows.length > 0) {
-                names.push(rows[0].name);
-            } else {
-                names.push("Unknown");
-            }
-        }
-        res.status(200).json(names)
-    }catch (err){
+     try {
+        // Query for getting member ids
+        const [rows] = await pool.query('SELECT idMember, name FROM Members');
+        res.status(200).json(rows);
+
+    } catch (err) {
+        console.error('Error fetching member IDs:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+})
+
+// This route fetches book titles
+app.post('/fetch_bookIds', async(req, res) =>{
+    try {
+        // Query for getting book ids
+        const [rows] = await pool.query('SELECT title FROM Books');
+        res.status(200).json(rows);
+    } catch (err) {
+        console.error('Error fetching member IDs:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+})
+
+// This route deletes a Checkout row given an ID
+app.post('/delete_row', async (req, res) => {
+    const { id } = req.body;
+    console.log([id])
+    try {
+        // Query for deleting Checkouts
+        const [rows] = await pool.query('CALL sp_delete_checkouts(?)', [id]);
+        res.status(200).json({ message: 'Checkout deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting checkout row:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// This route updates a row given the parameters and the checkoutid
+app.post('/update_row', async(req, res) =>{
+    const { idCheckout, selectedMemberID, selectedBookID, checkoutDateDB, dueDateDB, returnDateDB } = req.body;
+    try {
+        // Query for updating rows
+        const [rows] = await pool.query(
+            'CALL sp_Update_checkouts(?, ?, ?, ?, ?, ?)',
+            [idCheckout, selectedMemberID, selectedBookID, checkoutDateDB, dueDateDB, returnDateDB]
+        );
+        res.status(200).json(rows);
+    } catch (err) {
         console.error('Error fetching members:', err);
         res.status(500).json({ message: 'Internal server error' });
     }
 })
 
-// This route fetches a specific member name given a memberid
-app.post('/fetch_bookIds', async(req, res) =>{
-    const bookIDs = req.body;
-    var names = []
-    try{
-        // Given an array of ids we will fetch titles for all the ids in the array
-        for(let i=0; i < bookIDs.length; i++){
-            const [rows] = await pool.query('SELECT title FROM Books WHERE idBook = ?', [bookIDs[i]]);
-            console.log("Books", rows)
-            if (rows.length > 0) {
-                names.push(rows[0].title);
-            } else {
-                names.push("Unknown");
-            }
-        }
-        res.status(200).json(names)
-    }catch (err){
-        console.error('Error fetching books:', err);
+// This route gets the member's id given a name
+app.post('/get_member_id', async (req, res) => {
+   const {name} = req.body;
+    try {
+        // Query for getting memberid
+        const [rows] = await pool.query('SELECT idMember FROM Members WHERE name = ?', [name]);
+        res.status(200).json(rows);
+    } catch (err) {
+        console.error('Error fetching members:', err);
         res.status(500).json({ message: 'Internal server error' });
     }
-})
+});
 
+// This route gets the book's id given title
+app.post('/get_book_id', async (req, res) => {
+    const {title} = req.body;
+    try {
+        // Query for getting bookid
+        const [rows] = await pool.query('SELECT idBook FROM Books WHERE title = ?', [title]);
+        res.status(200).json(rows);
+    } catch (err) {
+        console.error('Error fetching members:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// This route inserts a row into the database
+app.post('/insert_row', async (req, res) => {
+    const { selectedMemberID, selectedBookID, checkoutDateDB, dueDateDB, returnDateDB } = req.body;
+
+    try {
+        // Query for inserting a row
+        const [result] = await pool.query(
+            'CALL sp_insert_checkouts(?, ?, ?, ?, ?)',
+            [selectedMemberID, selectedBookID, checkoutDateDB, dueDateDB, returnDateDB || null] // handles optional returnDate
+        );
+        res.status(200).json({ message: 'Row inserted', insertId: result.insertId });
+    } catch (err) {
+        console.error('Error inserting row:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+app.post('/reset_db', async (req, res) =>{
+    try{
+        const [result] = await pool.query('CALL sp_reset_database()')
+        res.status(200).json({ message: 'DB reset complete'});
+    }catch(err){
+        console.error('Error inserting row:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Server running at http://classwork.engr.oregonstate.edu:${PORT}`);
