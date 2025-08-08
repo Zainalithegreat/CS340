@@ -18,6 +18,7 @@ function Home() {
 
         if (response.ok){
             console.log("Reset Successful!")
+            alert("Reset Successful!")
         }else{
             console.log("Unsuccessful")
         }
