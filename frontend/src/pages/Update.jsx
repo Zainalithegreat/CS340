@@ -7,221 +7,226 @@
 
 // React related imports
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 
-function Update(){
-    // All variables used to Update a row in DB
-    const [membersID, setMemberID] = useState([]);
-    const [memberNames, setMemberNames] = useState([]);
-    const [booksID, setBookID] = useState([]);
-    const [booksTitle, setBooksTitle] = useState([]);
-    const [error, setError] = useState(null);
-    const [selectedMemberName, setSelectedMemberName] = useState('');
-    const [selectedBookTitle, setSelectedBookTitle] = useState('');
-    const [selectedMemberID, setSelectedMemberID] = useState(0);
-    const [selectedBookID, setSelectedBookID] = useState(0);
-    const [checkoutDateDB, setCheckoutDate] = useState('');
-    const [dueDateDB, setDueDate] = useState('');
-    const [returnDateDB, setReturnDate] = useState('');
+function Update() {
+  // State
+  const [memberNames, setMemberNames] = useState([]);
+  const [booksTitle, setBooksTitle] = useState([]);
+  const [error, setError] = useState(null);
 
-    const idCheckout = localStorage.getItem("checkout");
-    useEffect(() => {
-            // This function Fetches checkouts from the database
-            async function fetchCheckouts() {
-                try {
-                    const response = await fetch('http://classwork.engr.oregonstate.edu:55111/fetch_checkouts', {
-                        method: 'POST',
-                        headers: { "Content-Type": "application/json" }
-                    });
-                    // If the response is ok it will get stored in data
-                    if (response.ok) {
-                        const data = await response.json();
+  const [selectedMemberName, setSelectedMemberName] = useState('');
+  const [selectedBookTitle, setSelectedBookTitle] = useState('');
+  const [selectedMemberID, setSelectedMemberID] = useState(0);
+  const [selectedBookID, setSelectedBookID] = useState(0);
 
-                        const ids = [...new Set(data.map(member => member.idMember))];
-                        setMemberID(ids);
-                        const bookIds = [...new Set(data.map(member => member.idBook))];
-                        setBookID(bookIds)
-                    // else it will throw an error
-                    } else {
-                        const err = await response.json();
-                        setError(err.message);
-                    }
-                    // This is try catch, this will catch the error
-                } catch (err) {
-                    console.error("Something went wrong:", err);
-                    setError("Fetch failed");
-                }
-            }
+  const [checkoutDateDB, setCheckoutDate] = useState('');
+  const [dueDateDB, setDueDate] = useState('');
+  const [returnDateDB, setReturnDate] = useState('');
 
-            fetchCheckouts();
-        }, []);
+  const API = 'http://classwork.engr.oregonstate.edu:55111';
 
-         useEffect(() => {
-    // Fetches member names
-    async function fetchMemberNames() {
-        try {
-            const response = await fetch('http://classwork.engr.oregonstate.edu:55111/fetch_memberIds', {
-                method: 'POST',
-                headers: { "Content-Type": "application/json" },
-            });
-            // Everything worked out
-            if (response.ok) {
-                const data = await response.json();
-                setMemberNames(data);
-            // Something broke
-            } else {
-                const err = await response.json();
-                setError(err.message);
-            }
-        // This is try catch, this will catch the error
-        } catch (err) {
-            console.error("Something went wrong:", err);
-            setError("Fetch failed");
-        }
+  // Preloaded values
+  const idCheckout = localStorage.getItem('checkout');
+  const name = localStorage.getItem('name');
+  const title = localStorage.getItem('title');
+  const checkoutDate = localStorage.getItem('checkoutDate');
+  const dueDate = localStorage.getItem('dueDate');
+  const returnDate = localStorage.getItem('returnDate');
+
+  // Helpers
+  function formatDateForInput(dateString) {
+    if (!dateString) return '';
+    const s = String(dateString).toLowerCase();
+    if (s === 'none' || s === 'null') return '';
+    // Expecting ISO or something Date can parse
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().split('T')[0]; // yyyy-mm-dd for <input type="date">
+  }
+
+  function normalizeDateForAPI(value) {
+    // Send null instead of '' so backend can treat it as NULL
+    return value && value.trim() !== '' ? value : null;
+  }
+
+  async function fetchJSON(url, options) {
+    const res = await fetch(url, options);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Request failed: ${res.status}`);
     }
+    return res.json();
+  }
 
-        fetchMemberNames();
-    }, []);
+  // Load dropdown data
+  useEffect(() => {
+    (async () => {
+      try {
+        const [members, books] = await Promise.all([
+          fetchJSON(`${API}/fetch_memberIds`, { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+          fetchJSON(`${API}/fetch_bookIds`, { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        ]);
+        setMemberNames(members);
+        setBooksTitle(books);
+      } catch (e) {
+        console.error(e);
+        setError(e.message || 'Fetch failed');
+      }
+    })();
+  }, []);
 
-    useEffect(() => {
-        // Fetches member names
-        async function fetchBookTitles() {
-            try {
-                const response = await fetch('http://classwork.engr.oregonstate.edu:55111/fetch_bookIds', {
-                    method: 'POST',
-                    headers: { "Content-Type": "application/json" },
-                });
-                // Everything worked
-                if (response.ok) {
-                    const data = await response.json();
-                    setBooksTitle(data);
-                // Something went wrong
-                } else {
-                    const err = await response.json();
-                    setError(err.message);
-                }
-            // This is try catch, this will catch the error
-            } catch (err) {
-                console.error("Something went wrong:", err);
-                setError("Fetch failed");
-            }
-        }
+  // Seed initial selected values + dates
+  useEffect(() => {
+    setSelectedMemberName(name || '');
+    setSelectedBookTitle(title || '');
+    setCheckoutDate(formatDateForInput(checkoutDate));
+    setDueDate(formatDateForInput(dueDate));
+    setReturnDate(formatDateForInput(returnDate));
+  }, [name, title, checkoutDate, dueDate, returnDate]);
 
-        fetchBookTitles();
-    }, []);
-
-    // This updates a query
-    async function UpdateQuery(e){
-        try {
-            const response = await fetch('http://classwork.engr.oregonstate.edu:55111/update_row', {
-                method: 'POST',
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({idCheckout, selectedMemberID, selectedBookID, checkoutDateDB, dueDateDB, returnDateDB})
-            });
-            if (response.ok) {
-                console.log("Everything updated")
-            } else {
-                const err = await response.json();
-                setError(err.message);
-            }
-        } catch (err) {
-            console.error("Something went wrong:", err);
-            setError("Delete failed");
-        }
-    }
-
-     // Handles when the member has change on the UI
-    async function handleMemberChange(e) {
-        const name = e.target.value;
-        setSelectedMemberName(name);
-        console.log("Name: ", name)
-        const response = await fetch('http://classwork.engr.oregonstate.edu:55111/get_member_id', {
+  // Whenever the preselected names exist, resolve their IDs once on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        if (selectedMemberName) {
+          const data = await fetchJSON(`${API}/get_member_id`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name }),
-        });
-        if (response.ok) {
-            const data = await response.json();
-            console.log("memberId", data)
-            setSelectedMemberID(data[0].idMember)
-        } else {
-            const err = await response.json();
-            setError(err.message);
+            body: JSON.stringify({ name: selectedMemberName }),
+          });
+          if (Array.isArray(data) && data[0]?.idMember) setSelectedMemberID(data[0].idMember);
         }
-    }
-
-     // Handles when the book has change on the UI
-    async function handleBookChange(e) {
-        const title = e.target.value;
-        setSelectedBookTitle(title);
-        console.log("title: ", title)
-
-        const response = await fetch('http://classwork.engr.oregonstate.edu:55111/get_book_id', {
+        if (selectedBookTitle) {
+          const data = await fetchJSON(`${API}/get_book_id`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title }),
-        });
-        if (response.ok) {
-            const data = await response.json();
-            console.log("bookId", data)
-            setSelectedBookID(data[0].idBook)
-        } else {
-            const err = await response.json();
-            setError(err.message);
+            body: JSON.stringify({ title: selectedBookTitle }),
+          });
+          if (Array.isArray(data) && data[0]?.idBook) setSelectedBookID(data[0].idBook);
         }
+      } catch (e) {
+        console.error(e);
+        setError(e.message || 'Lookup failed');
+      }
+    })();
+    // Only run when these specific names change
+  }, [selectedMemberName, selectedBookTitle]);
+
+  // Handlers
+  async function handleMemberChange(e) {
+    const name = e.target.value;
+    setSelectedMemberName(name);
+    try {
+      const data = await fetchJSON(`${API}/get_member_id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      setSelectedMemberID(data[0].idMember);
+    } catch (e) {
+      setError(e.message);
     }
+  }
 
-    // This is where all the displaying happens
-    return (
-        <>
-        <form onSubmit={UpdateQuery}>
-            <h1>Update</h1>
-            <label>Member's name(MemberID)</label>
-            <select value={selectedMemberName} onChange={handleMemberChange}>
-                <option></option>
-                {memberNames.map((m, index) => (
-                    <option key={index} value={m.name}>{m.name}</option>
-                ))}
+  async function handleBookChange(e) {
+    const title = e.target.value;
+    setSelectedBookTitle(title);
+    try {
+      const data = await fetchJSON(`${API}/get_book_id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      setSelectedBookID(data[0].idBook);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
 
-            </select>
+  async function UpdateQuery(e) {
+    e.preventDefault(); // prevent page reload
+    setError(null);
 
-            <br/><label>Book's Title(BookID)</label>
-            <select value={selectedBookTitle} onChange={handleBookChange}>
-                <option></option>
-                {booksTitle.map((m, index) => (
-                    <option key={index} value={m.title}>{m.title}</option>
-                ))}
-            </select>
+    try {
+      const body = {
+        idCheckout,
+        selectedMemberID,
+        selectedBookID,
+        checkoutDateDB: normalizeDateForAPI(checkoutDateDB),
+        dueDateDB: normalizeDateForAPI(dueDateDB),
+        returnDateDB: normalizeDateForAPI(returnDateDB),
+      };
 
-            <br /> Checkout Date: <input
-                type="date"
-                id="checkout"
-                name="checkout"
-                value={checkoutDateDB}
-                onChange={(e) => setCheckoutDate(e.target.value)}
-            />
+      await fetchJSON(`${API}/update_row`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-            <br /> Due Date: <input
-                type="date"
-                id="dueDate"
-                name="dueDate"
-                value={dueDateDB}
-                onChange={(e) => setDueDate(e.target.value)}
-            />
+      console.log('Everything updated');
+      alert('Update successful');
+    } catch (e) {
+      console.error(e);
+      setError(e.message || 'Update failed');
+    }
+  }
 
-            <br /> Return Date: <input
-                type="date"
-                id="returnDate"
-                name="returnDate"
-                value={returnDateDB}
-                onChange={(e) => setReturnDate(e.target.value)}
-            />
+  return (
+    <>
+      <form onSubmit={UpdateQuery}>
+        <h1>Update</h1>
 
-            <br/>
-            <button type="submit" name="type" value="submit" className="main-button">Insert</button>
-        </form>
-        </>
-    );
+        {error && <p style={{ color: 'crimson' }}>{error}</p>}
+
+        <label>Member&apos;s name (MemberID)</label>
+        <select value={selectedMemberName} onChange={handleMemberChange}>
+          <option value="" disabled>Select a member…</option>
+          {memberNames.map((m, idx) => (
+            <option key={idx} value={m.name}>{m.name}</option>
+          ))}
+        </select>
+
+        <br />
+        <label>Book&apos;s Title (BookID)</label>
+        <select value={selectedBookTitle} onChange={handleBookChange}>
+          <option value="" disabled>Select a book…</option>
+          {booksTitle.map((b, idx) => (
+            <option key={idx} value={b.title}>{b.title}</option>
+          ))}
+        </select>
+
+        <br /> Checkout Date:{' '}
+        <input
+          type="date"
+          id="checkout"
+          name="checkout"
+          value={checkoutDateDB}
+          onChange={(e) => setCheckoutDate(e.target.value)}
+        />
+
+        <br /> Due Date:{' '}
+        <input
+          type="date"
+          id="dueDate"
+          name="dueDate"
+          value={dueDateDB}
+          onChange={(e) => setDueDate(e.target.value)}
+        />
+
+        <br /> Return Date:{' '}
+        <input
+          type="date"
+          id="returnDate"
+          name="returnDate"
+          value={returnDateDB}
+          onChange={(e) => setReturnDate(e.target.value)}
+        />
+
+        <br />
+        <button type="submit" className="main-button">Update</button>
+      </form>
+    </>
+  );
 }
 
 export default Update;

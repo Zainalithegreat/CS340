@@ -206,10 +206,15 @@ function Checkouts() {
     const navigate = useNavigate();
 
     // Navigates to the update page
-    async function handleUpdateClick(idCheckout) {
+    async function handleUpdateClick(idCheckout, name, title, checkoutDate, dueDate, returnDate) {
         console.log("ID: ", idCheckout)
         navigate('/Update');
         localStorage.setItem("checkout", idCheckout);
+        localStorage.setItem("name", name);
+        localStorage.setItem("title", title);
+        localStorage.setItem("checkoutDate", checkoutDate);
+        localStorage.setItem("dueDate", dueDate);
+        localStorage.setItem("returnDate", returnDate);
     }
 
     // Displays everything that is returned by fetch genres
@@ -228,7 +233,7 @@ function Checkouts() {
                         <h2>Checkout ID: {checkout.Checkout_ID}, Member ID: {checkout.idMember}, Book ID: {checkout.idBook}, Member Name: {checkout.name}, Book Title: {checkout.title}, checkoutDate: {checkout.checkoutDate}, dueDate: {checkout.dueDate}, returnDate: {checkout.returnDate}</h2>
                         <br />
                         <div>
-                            <button onClick={() => handleUpdateClick(checkout.Checkout_ID)}>Update</button>
+                            <button onClick={() => handleUpdateClick(checkout.Checkout_ID, checkout.name, checkout.title, checkout.checkoutDate, checkout.dueDate, checkout.returnDate)}>Update</button>
                             <button onClick={() => deleteRow(checkout.Checkout_ID)}>Delete</button>
                         </div>
                     </li>
